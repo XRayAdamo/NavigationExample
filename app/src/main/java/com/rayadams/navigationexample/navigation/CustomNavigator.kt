@@ -53,11 +53,11 @@ data class NavigationAction(
 @Singleton
 class CustomNavigator @Inject constructor() {
     private val _navActions =
-        MutableSharedFlow<NavigationAction?>(replay = 1, onBufferOverflow = BufferOverflow.DROP_LATEST)
+        MutableSharedFlow<NavigationAction>(replay = 1, onBufferOverflow = BufferOverflow.DROP_LATEST)
 
-    val navActions: SharedFlow<NavigationAction?> = _navActions
+    val navActions: SharedFlow<NavigationAction> = _navActions
 
-    fun navigate(navAction: NavigationAction?) {
+    fun navigate(navAction: NavigationAction) {
         _navActions.tryEmit(navAction)
     }
 

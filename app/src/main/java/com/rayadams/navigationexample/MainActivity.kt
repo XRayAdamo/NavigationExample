@@ -46,15 +46,14 @@ class MainActivity : ComponentActivity() {
                     lifecycleScope.launch {
                         repeatOnLifecycle(Lifecycle.State.STARTED) {
                             navHelper.navActions.collect { navigatorState ->
-                                navigatorState?.let {
-                                    it.parcelableArguments.forEach { arg ->
-                                        navController.currentBackStackEntry?.arguments?.putParcelable(
-                                            arg.key,
-                                            arg.value
-                                        )
-                                    }
-                                    navHelper.runNavigationCommand(it, navController)
+                                navigatorState.parcelableArguments.forEach { arg ->
+                                    navController.currentBackStackEntry?.arguments?.putParcelable(
+                                        arg.key,
+                                        arg.value
+                                    )
                                 }
+                                navHelper.runNavigationCommand(navigatorState, navController)
+
                             }
                         }
                     }
@@ -87,7 +86,8 @@ fun Navigation(navController: NavHostController) {
         composable(NavRoutes.SCREEN3) {
             Screen3()
         }
-        composable(NavRoutes.SCREEN_WITH_PARAMETER_INSIDE,
+        composable(
+            NavRoutes.SCREEN_WITH_PARAMETER_INSIDE,
             arguments = listOf(navArgument(NavigationParams.PARAMETER) { type = NavType.StringType })
         ) {
 
