@@ -4,13 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -27,6 +28,7 @@ import com.rayadams.navigationexample.screens.Screen3
 import com.rayadams.navigationexample.screens.ScreenWithParameter
 import com.rayadams.navigationexample.ui.theme.NavigationExampleTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -41,17 +43,26 @@ class MainActivity : ComponentActivity() {
                 val navController: NavHostController = rememberNavController()
 
                 LaunchedEffect(key1 = true) {
-                    navHelper.navActions.collect { navigatorState ->
-                        navigatorState?.let {
-                            it.parcelableArguments.forEach { arg ->
-                                navController.currentBackStackEntry?.arguments?.putParcelable(arg.key, arg.value)
+                    lifecycleScope.launch {
+                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                            navHelper.navActions.collect { navigatorState ->
+                                navigatorState?.let {
+                                    it.parcelableArguments.forEach { arg ->
+                                        navController.currentBackStackEntry?.arguments?.putParcelable(
+                                            arg.key,
+                                            arg.value
+                                        )
+                                    }
+                                    navHelper.runNavigationCommand(it, navController)
+                                }
                             }
-                            navHelper.runNavigationCommand(it, navController)
                         }
                     }
                 }
-                Surface(modifier = Modifier
-                    .fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize(), color = MaterialTheme.colorScheme.background
+                ) {
                     Navigation(navController)
                 }
             }
@@ -77,7 +88,8 @@ fun Navigation(navController: NavHostController) {
             Screen3()
         }
         composable(NavRoutes.SCREEN_WITH_PARAMETER_INSIDE,
-            arguments = listOf(navArgument(NavigationParams.PARAMETER) { type = NavType.StringType })) {
+            arguments = listOf(navArgument(NavigationParams.PARAMETER) { type = NavType.StringType })
+        ) {
 
             navController.currentBackStackEntry?.savedStateHandle?.set(
                 NavigationParams.PARAMETER,

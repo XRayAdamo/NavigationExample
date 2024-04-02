@@ -3,9 +3,10 @@ package com.rayadams.navigationexample.navigation
 import android.os.Parcelable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,13 +52,13 @@ data class NavigationAction(
 
 @Singleton
 class CustomNavigator @Inject constructor() {
-    private val _navActions: MutableStateFlow<NavigationAction?> by lazy {
-        MutableStateFlow(null)
-    }
-    val navActions = _navActions.asStateFlow()
+    private val _navActions =
+        MutableSharedFlow<NavigationAction?>(replay = 1, onBufferOverflow = BufferOverflow.DROP_LATEST)
+
+    val navActions: SharedFlow<NavigationAction?> = _navActions
 
     fun navigate(navAction: NavigationAction?) {
-        _navActions.update { navAction }
+        _navActions.tryEmit(navAction)
     }
 
     fun navigate(destination: String) {
@@ -72,6 +73,7 @@ class CustomNavigator @Inject constructor() {
         navigate(NavigationAction(NavigationCommand.GO_BACK))
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun runNavigationCommand(action: NavigationAction, navController: NavHostController) {
         when (action.navigationCommand) {
             NavigationCommand.GO_BACK -> navController.navigateUp()
@@ -90,9 +92,8 @@ class CustomNavigator @Inject constructor() {
             NavigationCommand.NAVIGATE_AND_CLEAR_TOP -> navController.navigateAndReplaceStartRoute(action.destination)
             NavigationCommand.GO_BACK_TO_INCLUSIVE -> navController.goBackTo(action.destination, inclusive = true)
         }
-        _navActions.update {
-            null
-        }
+
+        _navActions.resetReplayCache()
     }
 
     fun goBackTo(destination: String) {
